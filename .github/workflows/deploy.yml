@@ -62,5 +62,5 @@ jobs:
             cd /home/${{ vars.VPS_USER }}/apps/${{ vars.PROJECT_NAME }}
             pm2 stop ${{ vars.PROJECT_NAME }} || true
             pm2 delete ${{ vars.PROJECT_NAME }} || true
-            pm2 start npx --name ${{ vars.PROJECT_NAME }} -- serve -s build -l ${{ vars.WEB_PORT }} --no-clipboard
+            pm2 start npx --name ${{ vars.PROJECT_NAME }} -- serve -s build -l ${{ vars.PROJECT_PORT }} --no-clipboard
             pm2 save
