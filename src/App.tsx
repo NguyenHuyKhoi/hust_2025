@@ -1,5 +1,5 @@
+import { AutoComplete, Button, Input, Row, Typography } from "antd";
 import { useEffect, useState } from "react";
-import { Input, AutoComplete, Button, Typography, Row, Col } from "antd";
 import StudentItem from "./StudentItem";
 
 function normalize(str: string): string {
