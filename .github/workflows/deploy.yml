@@ -13,24 +13,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 🧩 1️⃣ Lấy code
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # ⚙️ 2️⃣ Cài Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "18"
           cache: "npm"
 
+      # 📦 3️⃣ Cài dependencies
       - name: Install dependencies
         run: npm ci
 
+      # 🏗️ 4️⃣ Build app React
       - name: Build app
         run: npm run build
 
-      # 🧩 Chuẩn bị thư mục build trên VPS
+      # 🧹 5️⃣ Dọn thư mục build trên VPS
       - name: Prepare VPS folder
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -39,10 +43,11 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ vars.VPS_PORT }}
           script: |
+            echo "🧹 Cleaning remote build folder..."
+            rm -rf /home/${{ vars.VPS_USER }}/apps/${{ vars.PROJECT_NAME }}/build
             mkdir -p /home/${{ vars.VPS_USER }}/apps/${{ vars.PROJECT_NAME }}/build
-            rm -rf /home/${{ vars.VPS_USER }}/apps/${{ vars.PROJECT_NAME }}/build/*
 
-      # 🧠 Upload đúng nội dung (fix lỗi build/build)
+      # 📤 6️⃣ Upload nội dung build (fix lỗi build/build)
       - name: Upload build to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -50,10 +55,12 @@ jobs:
           username: ${{ vars.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ vars.VPS_PORT }}
-          source: "build/*"
-          target: "/home/${{ vars.VPS_USER }}/apps/${{ vars.PROJECT_NAME }}/build"
+          # 👇 Chỉ upload nội dung bên trong build, không copy cả thư mục build/
+          source: "./build/*"
+          target: "/home/${{ vars.VPS_USER }}/apps/${{ vars.PROJECT_NAME }}/build/"
+          strip_components: 1
 
-      # 🔁 Restart PM2 và serve đúng thư mục build
+      # 🔁 7️⃣ Restart PM2 để chạy app React
       - name: Restart PM2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -62,9 +69,21 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ vars.VPS_PORT }}
           script: |
+            echo "🔁 Restarting PM2..."
             cd /home/${{ vars.VPS_USER }}/apps/${{ vars.PROJECT_NAME }}
             pm2 stop ${{ vars.PROJECT_NAME }} || true
             pm2 delete ${{ vars.PROJECT_NAME }} || true
-            # ✅ Dùng đường dẫn tuyệt đối để tránh lỗi serve sai thư mục
             pm2 start "npx serve -s /home/${{ vars.VPS_USER }}/apps/${{ vars.PROJECT_NAME }}/build -l ${{ vars.PROJECT_PORT }} --no-clipboard" --name ${{ vars.PROJECT_NAME }}
             pm2 save
+
+      # ✅ 8️⃣ Kiểm tra trạng thái PM2
+      - name: Check PM2 status
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ vars.VPS_HOST }}
+          username: ${{ vars.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ vars.VPS_PORT }}
+          script: |
+            pm2 list
+            echo "✅ Deployment completed successfully!"
