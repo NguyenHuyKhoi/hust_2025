@@ -111,7 +111,7 @@ export default function App() {
         background: "#fff",
         display: "flex",
         justifyContent: "center",
-        padding: "40px 0",
+        padding: "20px 0",
         minWidth: "100vw",
       }}
     >
